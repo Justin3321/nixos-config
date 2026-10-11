@@ -21,6 +21,7 @@
     starship
     lazygit
     fastfetch
+    pokemon-colorscripts
     btop
     micro
     wl-clipboard
@@ -128,8 +129,23 @@
   # foot.ini already sets font=JetBrains Mono Nerd Font:size=12, comfortable
   # at the 1.333333 monitor scale.
   xdg.configFile."starship.toml".source = "${caelestia-dots}/starship.toml";
-  xdg.configFile."fish/functions/fish_greeting.fish".source =
-    "${caelestia-dots}/fish/functions/fish_greeting.fish";
+  # fish_greeting is NOT pulled verbatim from upstream like starship/foot
+  # below: this is upstream's banner + fastfetch call, with a shiny
+  # Charizard (pokemon-colorscripts) tacked on after, same as the old
+  # pre-NixOS fish config used to do.
+  xdg.configFile."fish/functions/fish_greeting.fish".text = ''
+    function fish_greeting
+        echo -ne '\x1b[38;5;16m'  # Set colour to primary
+        echo '     ______           __          __  _       '
+        echo '    / ____/___ ____  / /__  _____/ /_(_)___ _ '
+        echo '   / /   / __ `/ _ \/ / _ \/ ___/ __/ / __ `/ '
+        echo '  / /___/ /_/ /  __/ /  __(__  ) /_/ / /_/ /  '
+        echo '  \____/\__,_/\___/_/\___/____/\__/_/\__,_/   '
+        set_color normal
+        command -v fastfetch &> /dev/null && fastfetch --key-padding-left 5
+        command -v pokemon-colorscripts &> /dev/null && pokemon-colorscripts --no-title -s -n charizard
+    end
+  '';
   xdg.configFile."foot/foot.ini".source = "${caelestia-dots}/foot/foot.ini";
 
   programs.fish = {
