@@ -44,6 +44,12 @@
     '';
   };
 
+  # Polkit authentication agent: upstream execs.lua tries to exec a
+  # hardcoded /usr/lib/polkit-gnome/... path that doesn't exist on NixOS, so
+  # that line silently no-ops. This is the real, Hyprland-native replacement:
+  # a proper systemd user service tied to the graphical session.
+  services.hyprpolkitagent.enable = true;
+
   # caelestia-shell's own systemd autostart is disabled: upstream hypr's
   # execs.lua already launches `caelestia shell -d` on hyprland.start, and
   # running both would start the shell twice.

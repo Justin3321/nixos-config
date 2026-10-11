@@ -52,6 +52,17 @@
   # Enable Hyprland as the primary Wayland session.
   programs.hyprland.enable = true;
 
+  # polkit itself; the actual authentication-agent UI is a hyprpolkitagent
+  # systemd user service, enabled in home.nix.
+  security.polkit.enable = true;
+
+  # GNOME Keyring: works under both the GNOME and Hyprland sessions since
+  # GDM's password prompt is what unlocks it (not the desktop session you
+  # launch afterwards), so the PAM hook only needs wiring onto gdm/gdm-password.
+  services.gnome.gnome-keyring.enable = true;
+  security.pam.services.gdm.enableGnomeKeyring = true;
+  security.pam.services.gdm-password.enableGnomeKeyring = true;
+
   # Configure keymap in X11
   services.xserver.xkb = {
     layout = "us";
