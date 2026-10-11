@@ -45,9 +45,12 @@
     LC_TIME = "en_US.UTF-8";
   };
 
-  # Enable the GNOME Desktop Environment.
+  # Enable the GNOME Desktop Environment (kept as a fallback session).
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;
+
+  # Enable Hyprland as the primary Wayland session.
+  programs.hyprland.enable = true;
 
   # Configure keymap in X11
   services.xserver.xkb = {
@@ -78,10 +81,14 @@
     isNormalUser = true;
     description = "Senkoi";
     extraGroups = [ "networkmanager" "wheel" ];
+    shell = pkgs.fish;
     packages = with pkgs; [
     #  thunderbird
     ];
   };
+
+  # Registers fish in /etc/shells so it can be used as a login shell above.
+  programs.fish.enable = true;
 
   # Install firefox.
   programs.firefox.enable = true;
