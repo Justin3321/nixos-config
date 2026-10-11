@@ -4,6 +4,24 @@
 
 { config, pkgs, ... }:
 
+let
+  # sddm-astronaut, pinned to the "pixel_sakura" embedded variant (the animated
+  # 8-bit train + cherry blossoms theme, not "pixel_sakura_static"). ScreenWidth/
+  # ScreenHeight are overridden via the package's themeConfig knob (written out as
+  # Themes/pixel_sakura.conf.user, which SDDM layers on top of the theme's own
+  # pixel_sakura.conf) to match this panel's native 2880x1920 panel: the theme's
+  # Main.qml sizes its root item from config.ScreenWidth/ScreenHeight if set
+  # (falling back to Screen.width/height only when blank), and ships with those
+  # defaulting to "1920"/"1080", so without this override the greeter renders in a
+  # fixed 1920x1080 canvas instead of filling/scaling to the real screen.
+  sddmAstronautTheme = pkgs.sddm-astronaut.override {
+    embeddedTheme = "pixel_sakura";
+    themeConfig = {
+      ScreenWidth = "2880";
+      ScreenHeight = "1920";
+    };
+  };
+in
 {
   imports =
     [ # Include the results of the hardware scan.
@@ -50,8 +68,27 @@
   };
 
   # Enable the GNOME Desktop Environment (kept as a fallback session).
-  services.displayManager.gdm.enable = true;
+  services.displayManager.gdm.enable = false;
   services.desktopManager.gnome.enable = true;
+
+  # SDDM (Qt6, kdePackages build) replaces GDM as the login screen. Session
+  # choice (Hyprland vs GNOME) is unaffected: those .desktop entries come from
+  # programs.hyprland/services.desktopManager.gnome, not from the display
+  # manager, so both still show up in SDDM's session picker.
+  services.displayManager.sddm = {
+    enable = true;
+    package = pkgs.kdePackages.sddm;
+    wayland.enable = true;
+    theme = "sddm-astronaut-theme";
+    # Qt plugins the animated (video/gif) astronaut theme needs at runtime:
+    # qtmultimedia for the background video/gif playback, qtsvg for its
+    # vector icons, qtvirtualkeyboard for the on-screen keyboard toggle.
+    extraPackages = with pkgs.kdePackages; [
+      qtmultimedia
+      qtsvg
+      qtvirtualkeyboard
+    ];
+  };
 
   # Enable Hyprland as the primary Wayland session.
   programs.hyprland.enable = true;
@@ -65,12 +102,19 @@
   services.fwupd.enable = true;
   services.power-profiles-daemon.enable = true;
 
-  # GNOME Keyring: works under both the GNOME and Hyprland sessions since
-  # GDM's password prompt is what unlocks it (not the desktop session you
-  # launch afterwards), so the PAM hook only needs wiring onto gdm/gdm-password.
+  # GNOME Keyring: works under both the GNOME and Hyprland sessions since the
+  # display manager's password prompt is what unlocks it (not the desktop
+  # session you launch afterwards). No per-DM enableGnomeKeyring flag is set
+  # here (unlike GDM, the nixpkgs sddm module doesn't read one on its "sddm"
+  # PAM service - it's a no-op there, since that service sets
+  # useDefaultRules = false and the generic enableGnomeKeyring plumbing in
+  # pam.nix only fires under useDefaultRules = true). The unlock still
+  # happens: services.gnome.gnome-keyring.enable sets
+  # security.pam.services.login.enableGnomeKeyring = true, baking
+  # pam_gnome_keyring auth/password/session lines into /etc/pam.d/login, and
+  # sddm's auth/password/session rules substack/include that same "login"
+  # PAM service, inheriting those lines automatically.
   services.gnome.gnome-keyring.enable = true;
-  security.pam.services.gdm.enableGnomeKeyring = true;
-  security.pam.services.gdm-password.enableGnomeKeyring = true;
 
   # Configure keymap in X11
   services.xserver.xkb = {
@@ -138,6 +182,7 @@ nix.gc = {
 	git
 	claude-code
 	vesktop
+	sddmAstronautTheme # Populates /run/current-system/sw/share/sddm/themes for SDDM's ThemeDir.
    ];
 
   # Some programs need SUID wrappers, can be configured further or are
