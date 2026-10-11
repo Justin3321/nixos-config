@@ -117,6 +117,7 @@ nix.settings.experimental-features = ["nix-command" "flakes" ];
      wget
 	git
 	claude-code
+	vesktop
    ];
 
   # Some programs need SUID wrappers, can be configured further or are
