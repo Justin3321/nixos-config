@@ -21,6 +21,108 @@ let
       ScreenHeight = "1920";
     };
   };
+
+  # Workaround for an upstream Hyprland bug: the "hyprland" session nixpkgs
+  # generates (programs.hyprland's own sessionPackages entry) has its .desktop
+  # Exec= pointing at "start-hyprland", a watchdog wrapper that forks the real
+  # Hyprland binary and waits on it from a background thread. On logout,
+  # systemd delivers SIGTERM directly to every process in the session scope,
+  # including start-hyprland itself. Its signal handler (start/src/core/
+  # Instance.cpp forceQuit(), called from start/src/main.cpp onSignal()) does
+  # `kill(child); m_hlThread.join();` unconditionally - if the signal happens
+  # to land on m_hlThread itself (the kernel picks an arbitrary thread,
+  # there's no pthread_sigmask blocking it there), that's a self-join, which
+  # libstdc++ turns into an uncaught std::system_error -> std::terminate ->
+  # SIGABRT. SDDM then treats the session as "crashed" rather than a clean
+  # logout and never respawns the greeter, leaving a black screen on VT1
+  # until `systemctl restart display-manager` from a TTY. Confirmed via
+  # `coredumpctl info` on this machine; still present as of Hyprland 0.56.2 /
+  # upstream main (checked hyprwm/Hyprland's start/src/core/Instance.cpp).
+  #
+  # Bypassing start-hyprland avoids the race entirely: launching the real
+  # Hyprland binary directly (still through its cap_sys_nice wrapper at
+  # security.wrapperDir, same as start-hyprland's execvp("Hyprland", ...)
+  # would resolve to via PATH) is explicitly supported - Hyprland's own
+  # main.cpp just logs "launched without start-hyprland, highly advised
+  # against" and continues normally. The only loss is start-hyprland's crash
+  # auto-restart-in-safe-mode feature, which isn't worth a black-screen-on-
+  # every-logout bug. Set as services.displayManager.sessionPackages /
+  # defaultSession below; remove this once upstream fixes the self-join.
+  hyprlandDirectSession = pkgs.runCommand "hyprland-direct-session"
+    {
+      passthru.providedSessions = [ "hyprland-direct" ];
+    }
+    ''
+      mkdir -p $out/share/wayland-sessions
+      cat > $out/share/wayland-sessions/hyprland-direct.desktop <<EOF
+      [Desktop Entry]
+      Name=Hyprland
+      Comment=Dynamic tiling Wayland compositor (launched directly; see configuration.nix for why)
+      Exec=${config.security.wrapperDir}/Hyprland
+      Type=Application
+      DesktopNames=Hyprland
+      Keywords=tiling;wayland;compositor;
+      EOF
+    '';
+
+  # Workaround for a long-standing, still-open SDDM bug (e.g. sddm/sddm#1573,
+  # #1352, #1733 - no release since 0.21.0/Feb 2024 to pick up a fix): on
+  # logout, systemd/logind kills every process in the session scope at once,
+  # including sddm-helper itself (confirmed via `journalctl`: "session-N.scope:
+  # Killing process N (sddm-helper) with signal SIGTERM"). sddm-helper dying
+  # that way is reported to SDDM's Auth class as a non-normal QProcess exit
+  # (src/auth/Auth.cpp childExited()), which logs the misleading "Process
+  # crashed" line seen in `journalctl -u display-manager` - this is not a
+  # real crash, just SDDM mislabeling any signal-killed helper. The actual bug
+  # is in src/daemon/Display.cpp slotHelperFinished(): it only calls stop()
+  # (the function that recreates the Display and switches the VT back to the
+  # greeter) when the resulting exit status is anything other than
+  # HELPER_AUTH_ERROR - a guard meant to keep a failed-password greeter on
+  # screen - but a signal-killed helper's exit code happens to land on that
+  # exact enum value by coincidence, so stop() is silently skipped and the
+  # greeter (alive but suspended, confirmed via its Xorg log ending on
+  # "Suspending AIGLX clients for VT switch" with nothing after) never comes
+  # back on any VT. Confirmed this is independent of the greeter's own
+  # backend (reproduced identically with wayland.enable = true and false) and
+  # independent of the start-hyprland crash fixed above (reproduced with zero
+  # coredumps via hyprland-direct too).
+  #
+  # This script polls logind for the specific session SDDM launches for
+  # senkoi (Service=sddm, Class=user, Name=senkoi - NOT the "login"/tty
+  # sessions a plain TTY login or `sudo` produces, which have Service=login
+  # and Class=user/manager respectively) and restarts display-manager.service
+  # the moment that exact session disappears - the same recovery action done
+  # by hand via a TTY until now, just automatic. Remove this once upstream
+  # fixes slotHelperFinished().
+  restartSddmAfterLogoutScript = pkgs.writeShellScript "restart-sddm-after-logout" ''
+    set -eu
+    LOGINCTL=${pkgs.systemd}/bin/loginctl
+    SYSTEMCTL=${pkgs.systemd}/bin/systemctl
+    TARGET_USER="senkoi"
+
+    prev_present=0
+    while true; do
+      present=0
+      while read -r sid _ user _; do
+        [ -n "$sid" ] || continue
+        service=$("$LOGINCTL" show-session "$sid" -p Service --value 2>/dev/null || true)
+        class=$("$LOGINCTL" show-session "$sid" -p Class --value 2>/dev/null || true)
+        if [ "$service" = "sddm" ] && [ "$class" = "user" ] && [ "$user" = "$TARGET_USER" ]; then
+          present=1
+        fi
+      done <<EOF
+    $("$LOGINCTL" list-sessions --no-legend 2>/dev/null)
+    EOF
+
+      if [ "$prev_present" = "1" ] && [ "$present" = "0" ]; then
+        if [ "$("$SYSTEMCTL" is-system-running 2>/dev/null)" != "stopping" ]; then
+          "$SYSTEMCTL" restart display-manager.service
+        fi
+      fi
+      prev_present=$present
+      sleep 2
+    done
+  '';
 in
 {
   imports =
@@ -82,12 +184,29 @@ in
   # sessionNames - GNOME). Value is the hyprland package's providedSessions
   # name ("hyprland"), i.e. the plain hyprland.desktop entry, not
   # "hyprland-uwsm" (programs.hyprland.withUWSM is not enabled here).
-  services.displayManager.defaultSession = "hyprland";
+  services.displayManager.defaultSession = "hyprland-direct";
+
+  # Adds the hyprland-direct session (see hyprlandDirectSession above) to the
+  # picker, alongside the "hyprland"/"hyprland-uwsm" sessions programs.hyprland
+  # already registers for itself.
+  services.displayManager.sessionPackages = [ hyprlandDirectSession ];
+
+  # wayland.enable is off: nixpkgs' own module calls it "experimental Wayland
+  # support", and in practice its embedded Weston greeter never respawns
+  # after a Hyprland session ends - confirmed on this machine by a clean
+  # (zero-coredump) hyprland-direct logout that still black-screened until
+  # `systemctl restart display-manager` from a TTY, with nothing in between
+  # in the journal. The mature X11 greeter backend doesn't have this problem.
+  # This only changes what renders the *greeter* (sddm-greeter-qt6, so the
+  # sddm-astronaut pixel_sakura theme looks identical either way) - the
+  # actual session (hyprland-direct) still runs pure Wayland. sddm's module
+  # asserts xserver.enable || wayland.enable, hence xserver.enable below.
+  services.xserver.enable = true;
 
   services.displayManager.sddm = {
     enable = true;
     package = pkgs.kdePackages.sddm;
-    wayland.enable = true;
+    wayland.enable = false;
     theme = "sddm-astronaut-theme";
     # Qt plugins the animated (video/gif) astronaut theme needs at runtime:
     # qtmultimedia for the background video/gif playback, qtsvg for its
@@ -97,6 +216,20 @@ in
       qtsvg
       qtvirtualkeyboard
     ];
+  };
+
+  # See restartSddmAfterLogoutScript above for why this exists.
+  systemd.services.restart-sddm-after-logout = {
+    description = "Restart SDDM after the senkoi/sddm Hyprland session ends (workaround for sddm/sddm#1573)";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-logind.service" ];
+    conflicts = [ "shutdown.target" ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = restartSddmAfterLogoutScript;
+      Restart = "always";
+      RestartSec = 2;
+    };
   };
 
   # Enable Hyprland as the primary Wayland session.
