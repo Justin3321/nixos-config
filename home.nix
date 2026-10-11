@@ -74,6 +74,34 @@
     recursive = true;
   };
 
+  # hypr-user.lua is loaded last by hyprland.lua (after the default "preferred"
+  # monitor rule and all of hyprland/*.lua), so values set here win. Declared
+  # here instead of left to the create-if-missing scaffold below because we
+  # want this content tracked and enforced by rebuilds, not hand-edited.
+  #
+  # force_zero_scaling + GDK_SCALE/QT_SCALE_FACTOR together are what the
+  # Hyprland wiki recommends for XWayland apps on a fractional-scale monitor:
+  # XWayland itself renders unscaled (Hyprland upscales the buffer), and the
+  # toolkit env vars tell X11 GTK/Qt apps to draw their UI at the monitor's
+  # scale instead of native size, so neither layer ends up blurry.
+  xdg.configFile."caelestia/hypr-user.lua".text = ''
+    hl.monitor({
+        output   = "eDP-1",
+        mode     = "2880x1920@120",
+        position = "auto",
+        scale    = 1.6,
+    })
+
+    hl.config({
+        xwayland = {
+            force_zero_scaling = true,
+        },
+    })
+
+    hl.env("GDK_SCALE", "1.6")
+    hl.env("QT_SCALE_FACTOR", "1.6")
+  '';
+
   # Starship + fish greeting pulled declaratively too, verbatim.
   xdg.configFile."starship.toml".source = "${caelestia-dots}/starship.toml";
   xdg.configFile."fish/functions/fish_greeting.fish".source =
@@ -96,10 +124,11 @@
   # Scaffold the same files upstream's own installer (manifest.toml) and
   # hyprland.lua's maybe_create would, create-if-missing so later hand edits
   # to these (they're meant to be user-editable overrides) survive rebuilds.
+  # hypr-user.lua is excluded here: it's now managed declaratively above via
+  # xdg.configFile, which creates it (and ~/.config/caelestia/) itself.
   home.activation.caelestiaConfigScaffold = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     run mkdir -p "$HOME/.config/caelestia"
     [ -e "$HOME/.config/caelestia/hypr-vars.lua" ] || run bash -c "printf 'return {}\n' > '$HOME/.config/caelestia/hypr-vars.lua'"
-    [ -e "$HOME/.config/caelestia/hypr-user.lua" ] || run touch "$HOME/.config/caelestia/hypr-user.lua"
     [ -e "$HOME/.config/caelestia/user-config.fish" ] || run touch "$HOME/.config/caelestia/user-config.fish"
   '';
 
