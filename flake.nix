@@ -23,9 +23,14 @@
       url = "github:caelestia-dots/caelestia";
       flake = false;
     };
+
+    spicetify-nix = {
+      url = "github:Gerg-L/spicetify-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, nixos-hardware, caelestia-shell, caelestia-dots, ... }:
+  outputs = { self, nixpkgs, home-manager, nixos-hardware, caelestia-shell, caelestia-dots, spicetify-nix, ... }:
     {
       nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
@@ -37,7 +42,7 @@
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.backupFileExtension = "backup";
-            home-manager.extraSpecialArgs = { inherit caelestia-shell caelestia-dots; };
+            home-manager.extraSpecialArgs = { inherit caelestia-shell caelestia-dots spicetify-nix; };
             home-manager.users.senkoi = import ./home.nix;
           }
         ];

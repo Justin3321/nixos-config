@@ -1,5 +1,8 @@
-{ pkgs, lib, config, caelestia-shell, caelestia-dots, ... }:
+{ pkgs, lib, config, caelestia-shell, caelestia-dots, spicetify-nix, ... }:
 
+let
+  spicePkgs = spicetify-nix.legacyPackages.${pkgs.stdenv.system};
+in
 {
   home.username = "senkoi";
   home.homeDirectory = "/home/senkoi";
@@ -7,6 +10,7 @@
 
   imports = [
     caelestia-shell.homeManagerModules.default
+    spicetify-nix.homeManagerModules.spicetify
   ];
 
   # Apps + CLI tools the upstream caelestia-dots hypr/fish config expects
@@ -156,6 +160,76 @@
     shellInit = builtins.readFile "${caelestia-dots}/fish/config.fish";
   };
 
+  # Workflow helpers for this repo. `rebuild`/`update` only prune generations
+  # and GC *after* a successful switch, so a broken build never costs
+  # existing generations; `nixos-rebuild build` (used elsewhere to validate)
+  # never touches generations at all, this is switch-only cleanup.
+  xdg.configFile."fish/functions/rebuild.fish".text = ''
+    function rebuild --description "Switch to the flake config, then prune old generations"
+        sudo nixos-rebuild switch --flake ~/nixos-config#nixos
+        if test $status -ne 0
+            echo "rebuild: nixos-rebuild switch failed, leaving generations untouched" >&2
+            return 1
+        end
+
+        echo "rebuild: switch succeeded, pruning generations..."
+        sudo nix-env -p /nix/var/nix/profiles/system --delete-generations +3
+        sudo nix-collect-garbage -d
+        # Re-run the already-built system's activation in "boot" mode: this
+        # regenerates the systemd-boot menu from the generations that still
+        # exist (pruning entries for the ones just deleted) without building
+        # a new generation.
+        sudo /nix/var/nix/profiles/system/bin/switch-to-configuration boot
+    end
+  '';
+  xdg.configFile."fish/functions/update.fish".text = ''
+    function update --description "Update flake inputs, then rebuild"
+        pushd ~/nixos-config
+        or return 1
+
+        # nix flake update already prints a per-input "updated/unchanged"
+        # summary on its own, so no extra diffing is needed here.
+        nix flake update
+        if test $status -ne 0
+            popd
+            return 1
+        end
+
+        popd
+        rebuild
+    end
+  '';
+  xdg.configFile."fish/functions/save.fish".text = ''
+    function save --description "Commit and push nixos-config" --argument-names message
+        if test -z "$message"
+            echo "usage: save \"commit message\"" >&2
+            return 1
+        end
+
+        pushd ~/nixos-config
+        or return 1
+
+        git add -A
+        git commit -m "$message"
+        if test $status -eq 0
+            git push
+        end
+
+        popd
+    end
+  '';
+  xdg.configFile."fish/functions/gens.fish".text = ''
+    function gens --description "List system generations"
+        nixos-rebuild list-generations
+    end
+  '';
+  xdg.configFile."fish/functions/cfg.fish".text = ''
+    function cfg --description "cd to nixos-config and launch claude"
+        cd ~/nixos-config
+        claude
+    end
+  '';
+
   # hyprland.lua resolves `require("hypr-vars")` / `require("hypr-user")`
   # against ~/.config/caelestia/?.lua, and only auto-creates those two files
   # itself (via maybe_create) if ~/.config/caelestia/ already exists -
@@ -224,6 +298,24 @@
   qt = {
     enable = true;
     platformTheme.name = "gtk";
+  };
+
+  # Spicetify: wraps/patches the Nix-store Spotify package, so this replaces
+  # any `pkgs.spotify` package reference elsewhere (there isn't one here).
+  # StarryNight's "Base" color scheme is a black night sky + shooting-star
+  # CSS animation (see theme.js, auto-injected by inject_theme_js, which
+  # defaults to true) - the closest built-in match to a dark meteor-shower
+  # look. Other bundled schemes in the same theme: Cotton-candy, Forest,
+  # Galaxy, Orange, Sky, Sunrise.
+  programs.spicetify = {
+    enable = true;
+    theme = spicePkgs.themes.starryNight;
+    colorScheme = "Base";
+    enabledExtensions = with spicePkgs.extensions; [
+      adblockify
+      shuffle
+      fullAppDisplay
+    ];
   };
 
   programs.home-manager.enable = true;
