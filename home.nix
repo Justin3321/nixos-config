@@ -89,7 +89,7 @@
         output   = "eDP-1",
         mode     = "2880x1920@120",
         position = "auto",
-        scale    = 1.6,
+        scale    = 1.333333,
     })
 
     hl.config({
@@ -98,8 +98,8 @@
         },
     })
 
-    hl.env("GDK_SCALE", "1.6")
-    hl.env("QT_SCALE_FACTOR", "1.6")
+    hl.env("GDK_SCALE", "1.333333")
+    hl.env("QT_SCALE_FACTOR", "1.333333")
   '';
 
   # Starship + fish greeting pulled declaratively too, verbatim.
