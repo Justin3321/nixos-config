@@ -9,6 +9,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    nixos-hardware.url = "github:NixOS/nixos-hardware/master";
+
     caelestia-shell = {
       url = "github:caelestia-dots/shell";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -23,11 +25,12 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, caelestia-shell, caelestia-dots, ... }:
+  outputs = { self, nixpkgs, home-manager, nixos-hardware, caelestia-shell, caelestia-dots, ... }:
     {
       nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
+          nixos-hardware.nixosModules.framework-amd-ai-300-series
           ./configuration.nix
           home-manager.nixosModules.home-manager
           {

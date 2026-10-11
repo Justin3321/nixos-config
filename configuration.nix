@@ -12,7 +12,11 @@
 
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
+  boot.loader.systemd-boot.configurationLimit = 10;
   boot.loader.efi.canTouchEfiVariables = true;
+
+  # Compressed RAM swap instead of (or alongside) a disk swap partition.
+  zramSwap.enable = true;
 
   # Use latest kernel.
   boot.kernelPackages = pkgs.linuxPackages_latest;
@@ -55,6 +59,11 @@
   # polkit itself; the actual authentication-agent UI is a hyprpolkitagent
   # systemd user service, enabled in home.nix.
   security.polkit.enable = true;
+
+  # Firmware updates (fwupd) and CPU/power profile switching (power-profiles-daemon),
+  # both relevant on Framework hardware.
+  services.fwupd.enable = true;
+  services.power-profiles-daemon.enable = true;
 
   # GNOME Keyring: works under both the GNOME and Hyprland sessions since
   # GDM's password prompt is what unlocks it (not the desktop session you
@@ -107,7 +116,17 @@
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
-nix.settings.experimental-features = ["nix-command" "flakes" ];
+nix.settings = {
+  experimental-features = [ "nix-command" "flakes" ];
+  auto-optimise-store = true;
+};
+
+# Keep the nix store from growing unbounded.
+nix.gc = {
+  automatic = true;
+  dates = "weekly";
+  options = "--delete-older-than 14d";
+};
 
 
   # List packages installed in system profile.

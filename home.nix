@@ -23,6 +23,8 @@
     fastfetch
     btop
     micro
+    wl-clipboard
+    cliphist
 
     # Fonts: caskaydia-cove/rubik/material-symbols for caelestia-shell,
     # jetbrains-mono-nerd for hypr/foot/fastfetch per upstream manifest.toml.
