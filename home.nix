@@ -1,4 +1,4 @@
-{ pkgs, caelestia-shell, caelestia-dots, ... }:
+{ pkgs, lib, caelestia-shell, caelestia-dots, ... }:
 
 {
   home.username = "senkoi";
@@ -84,6 +84,22 @@
     # shellInit (unconditional) is safe and simplest here.
     shellInit = builtins.readFile "${caelestia-dots}/fish/config.fish";
   };
+
+  # hyprland.lua resolves `require("hypr-vars")` / `require("hypr-user")`
+  # against ~/.config/caelestia/?.lua, and only auto-creates those two files
+  # itself (via maybe_create) if ~/.config/caelestia/ already exists -
+  # io.open(file, "w") doesn't make parent directories. Since nothing else
+  # here ever creates that directory, hyprland.lua crashed on first login
+  # with "module 'hypr-vars' not found" before a single keybind was bound.
+  # Scaffold the same files upstream's own installer (manifest.toml) and
+  # hyprland.lua's maybe_create would, create-if-missing so later hand edits
+  # to these (they're meant to be user-editable overrides) survive rebuilds.
+  home.activation.caelestiaConfigScaffold = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    run mkdir -p "$HOME/.config/caelestia"
+    [ -e "$HOME/.config/caelestia/hypr-vars.lua" ] || run bash -c "printf 'return {}\n' > '$HOME/.config/caelestia/hypr-vars.lua'"
+    [ -e "$HOME/.config/caelestia/hypr-user.lua" ] || run touch "$HOME/.config/caelestia/hypr-user.lua"
+    [ -e "$HOME/.config/caelestia/user-config.fish" ] || run touch "$HOME/.config/caelestia/user-config.fish"
+  '';
 
   programs.home-manager.enable = true;
 }
