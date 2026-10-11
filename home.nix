@@ -1,4 +1,4 @@
-{ pkgs, lib, caelestia-shell, caelestia-dots, ... }:
+{ pkgs, lib, config, caelestia-shell, caelestia-dots, ... }:
 
 {
   home.username = "senkoi";
@@ -101,6 +101,17 @@
     [ -e "$HOME/.config/caelestia/hypr-vars.lua" ] || run bash -c "printf 'return {}\n' > '$HOME/.config/caelestia/hypr-vars.lua'"
     [ -e "$HOME/.config/caelestia/hypr-user.lua" ] || run touch "$HOME/.config/caelestia/hypr-user.lua"
     [ -e "$HOME/.config/caelestia/user-config.fish" ] || run touch "$HOME/.config/caelestia/user-config.fish"
+  '';
+
+  # Default wallpaper on first login: `caelestia wallpaper -f` is what the
+  # picker itself calls, so this also generates the matching colour scheme
+  # instead of just dropping a path into state. Create-if-missing, same as
+  # the scaffold above - once the picker has been used, ~/.local/state/
+  # caelestia/wallpaper/path.txt exists and this must not override that choice.
+  home.activation.caelestiaDefaultWallpaper = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if [ ! -e "$HOME/.local/state/caelestia/wallpaper/path.txt" ] && [ -f "$HOME/Pictures/Wallpapers/shougan_castle.png" ]; then
+      run ${config.programs.caelestia.cli.package}/bin/caelestia wallpaper -f "$HOME/Pictures/Wallpapers/shougan_castle.png"
+    fi
   '';
 
   programs.home-manager.enable = true;
