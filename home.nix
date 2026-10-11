@@ -79,11 +79,15 @@
   # here instead of left to the create-if-missing scaffold below because we
   # want this content tracked and enforced by rebuilds, not hand-edited.
   #
-  # force_zero_scaling + GDK_SCALE/QT_SCALE_FACTOR together are what the
-  # Hyprland wiki recommends for XWayland apps on a fractional-scale monitor:
-  # XWayland itself renders unscaled (Hyprland upscales the buffer), and the
-  # toolkit env vars tell X11 GTK/Qt apps to draw their UI at the monitor's
-  # scale instead of native size, so neither layer ends up blurry.
+  # force_zero_scaling alone is the fix for XWayland on a fractional-scale
+  # monitor: XWayland renders unscaled and Hyprland upscales the buffer, so
+  # X11 apps come out the right size without any toolkit env vars. GDK_SCALE
+  # and QT_SCALE_FACTOR were removed: GDK_SCALE only accepts integers (so
+  # "1.333333" was being mis-parsed), and both vars apply to native
+  # Wayland/Qt clients too (e.g. Quickshell/caelestia-shell itself), which
+  # already auto-scale to the monitor's 1.333333 scale via Wayland's
+  # fractional-scale protocol - stacking a toolkit-forced scale on top of
+  # that double-scaled them.
   xdg.configFile."caelestia/hypr-user.lua".text = ''
     hl.monitor({
         output   = "eDP-1",
@@ -98,14 +102,27 @@
         },
     })
 
-    hl.env("GDK_SCALE", "1.333333")
-    hl.env("QT_SCALE_FACTOR", "1.333333")
+    -- NixOS's firefox wrapper already defaults this to "1" when unset, but
+    -- set it explicitly so Firefox runs as a native Wayland client (not
+    -- XWayland) regardless of upstream wrapper defaults.
+    hl.env("MOZ_ENABLE_WAYLAND", "1")
+
+    -- SUPER + I ("gear key"): upstream caelestia-dots never binds a key to
+    -- open the settings/control-center window - the only way in is clicking
+    -- the gear icon in the bar's utilities popout, which calls
+    -- WindowFactory.create() (see caelestia-shell modules/Shortcuts.qml,
+    -- CustomShortcut name "nexus"). That's exposed as the Hyprland global
+    -- "caelestia:nexus"; bind it here to match GNOME's Super+I convention.
+    hl.bind("SUPER + I", hl.dsp.global("caelestia:nexus"))
   '';
 
-  # Starship + fish greeting pulled declaratively too, verbatim.
+  # Starship + fish greeting + foot config pulled declaratively too, verbatim.
+  # foot.ini already sets font=JetBrains Mono Nerd Font:size=12, comfortable
+  # at the 1.333333 monitor scale.
   xdg.configFile."starship.toml".source = "${caelestia-dots}/starship.toml";
   xdg.configFile."fish/functions/fish_greeting.fish".source =
     "${caelestia-dots}/fish/functions/fish_greeting.fish";
+  xdg.configFile."foot/foot.ini".source = "${caelestia-dots}/foot/foot.ini";
 
   programs.fish = {
     enable = true;
