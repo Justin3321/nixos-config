@@ -32,6 +32,14 @@
     rubik
     nerd-fonts.caskaydia-cove
     nerd-fonts.jetbrains-mono
+
+    # GTK/Qt theming (see gtk/qt blocks below): adw-gtk3 is the only GTK3
+    # theme that actually renders libadwaita's flat dark style instead of
+    # the washed-out stock Adwaita; Papirus-Dark is what caelestia's own
+    # `caelestia wallpaper`/scheme-apply step (apply_gtk in caelestia-cli)
+    # already points dconf's icon-theme at.
+    adw-gtk3
+    papirus-icon-theme
   ];
 
   # Hyprland itself: packaging/session only. Real config comes from the
@@ -159,6 +167,48 @@
       run ${config.programs.caelestia.cli.package}/bin/caelestia wallpaper -f "$HOME/Pictures/Wallpapers/shougan_castle.png"
     fi
   '';
+
+  # GTK theming: Thunar and other GTK apps otherwise render in stock
+  # (light, washed-out) Adwaita under Hyprland since there's no GNOME
+  # session/XDG portal driving gsettings here. adw-gtk3-dark is upstream
+  # caelestia-dots' own choice of GTK theme (manifest.toml's "gtk"
+  # component installs "adw-gtk-theme" + Papirus on Arch); matching it
+  # here means this baseline agrees with what caelestia-cli's own
+  # wallpaper/scheme-apply step (apply_gtk in theme.py) writes to dconf
+  # every time the wallpaper/scheme changes - that step also drops
+  # accent-coloured CSS into ~/.config/gtk-{3,4}.0/gtk.css directly
+  # (outside home-manager, since it's regenerated per-wallpaper), which
+  # is untouched here because gtk3/gtk4.extraCss is left unset.
+  gtk = {
+    enable = true;
+    theme = {
+      name = "adw-gtk3-dark";
+      package = pkgs.adw-gtk3;
+    };
+    iconTheme = {
+      name = "Papirus-Dark";
+      package = pkgs.papirus-icon-theme;
+    };
+    font = {
+      name = "Rubik";
+      size = 11;
+    };
+    # Also flips dconf's org/gnome/desktop/interface color-scheme to
+    # "prefer-dark" (see gtk3.nix/gtk4.nix), which is what GTK4/libadwaita
+    # apps (and caelestia's own re-application of this same key) read to
+    # decide light vs dark.
+    colorScheme = "dark";
+  };
+
+  # Qt platform theme: without this, Qt/KDE apps ignore the GTK theme
+  # entirely and fall back to whatever default Qt style ships with the
+  # distro, looking inconsistent next to GTK apps. "gtk" makes Qt read
+  # the active GTK3 theme (adw-gtk3-dark, set above) directly via
+  # qt6gtk2/qtstyleplugins instead of needing a separate Qt theme.
+  qt = {
+    enable = true;
+    platformTheme.name = "gtk";
+  };
 
   programs.home-manager.enable = true;
 }
