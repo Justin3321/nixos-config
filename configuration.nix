@@ -75,6 +75,15 @@ in
   # choice (Hyprland vs GNOME) is unaffected: those .desktop entries come from
   # programs.hyprland/services.desktopManager.gnome, not from the display
   # manager, so both still show up in SDDM's session picker.
+  #
+  # defaultSession picks which one is pre-selected (GDM defaulted to GNOME;
+  # SDDM otherwise pre-selects whatever was logged into last, which on a
+  # fresh switch to SDDM is nothing, so it falls back to the first entry in
+  # sessionNames - GNOME). Value is the hyprland package's providedSessions
+  # name ("hyprland"), i.e. the plain hyprland.desktop entry, not
+  # "hyprland-uwsm" (programs.hyprland.withUWSM is not enabled here).
+  services.displayManager.defaultSession = "hyprland";
+
   services.displayManager.sddm = {
     enable = true;
     package = pkgs.kdePackages.sddm;
