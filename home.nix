@@ -31,6 +31,11 @@ in
     wl-clipboard
     cliphist
 
+    # Standalone Quickshell app for the keybind cheat sheet (quickshell/cheatsheet/
+    # shell.qml below) - a separate `qs` instance from caelestia-shell's own
+    # bundled one, run via `qs -c cheatsheet`.
+    quickshell
+
     # Fonts: caskaydia-cove/rubik/material-symbols for caelestia-shell,
     # jetbrains-mono-nerd for hypr/foot/fastfetch per upstream manifest.toml.
     material-symbols
@@ -127,12 +132,31 @@ in
     -- CustomShortcut name "nexus"). That's exposed as the Hyprland global
     -- "caelestia:nexus"; bind it here to match GNOME's Super+I convention.
     hl.bind("SUPER + I", hl.dsp.global("caelestia:nexus"))
+
+    -- Keybind cheat sheet (SUPER + /): a separate Quickshell instance
+    -- (qs -c cheatsheet, see quickshell/cheatsheet/shell.qml), autostarted
+    -- hidden alongside the main shell and toggled via its IPC handler. Esc
+    -- also closes it (handled inside the QML itself, not a Hyprland bind, so
+    -- Esc isn't hijacked globally). blur = true here matches the
+    -- "caelestia-(drawers|background)" fade rule upstream's rules.lua
+    -- already sets for its own popups.
+    hl.on("hyprland.start", function()
+        hl.exec_cmd("qs -c cheatsheet -d")
+    end)
+    hl.bind("SUPER + Slash", hl.dsp.exec_cmd("qs ipc -c cheatsheet call cheatsheet toggle"))
+    hl.layer_rule({ match = { namespace = "caelestia-cheatsheet" }, animation = "fade", blur = true })
   '';
 
   # Starship + fish greeting + foot config pulled declaratively too, verbatim.
   # foot.ini already sets font=JetBrains Mono Nerd Font:size=12, comfortable
   # at the 1.333333 monitor scale.
   xdg.configFile."starship.toml".source = "${caelestia-dots}/starship.toml";
+
+  # Keybind cheat sheet: a standalone Quickshell app (not part of the compiled
+  # caelestia-shell binary, see quickshell/cheatsheet/shell.qml for why),
+  # autostarted and toggled by hypr-user.lua above.
+  xdg.configFile."quickshell/cheatsheet/shell.qml".source = ./quickshell/cheatsheet/shell.qml;
+
   # fish_greeting is NOT pulled verbatim from upstream like starship/foot
   # below: this is upstream's banner + fastfetch call, with a shiny
   # Charizard (pokemon-colorscripts) tacked on after, same as the old
