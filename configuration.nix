@@ -324,7 +324,20 @@ nix.gc = {
 	git
 	claude-code
 	vesktop
+	vscode
 	sddmAstronautTheme # Populates /run/current-system/sw/share/sddm/themes for SDDM's ThemeDir.
+	# Terminal eye-candy for the "larping" desktop
+	lavat # lava lamp simulation
+	cmatrix # Matrix digital rain
+	cbonsai # terminal bonsai tree
+	cava # audio visualizer
+	pipes # animated pipes filling the screen
+	asciiquarium # ASCII aquarium
+	unimatrix # unicode-based matrix-rain variant
+	nyancat # the classic
+	hollywood # fills terminal panes with movie-hacker nonsense
+	genact # fake "hard at work" progress bars/logs
+	tty-clock # big ASCII clock
    ];
 
   # Some programs need SUID wrappers, can be configured further or are
