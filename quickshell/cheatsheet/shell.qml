@@ -366,10 +366,10 @@ PanelWindow {
     // ---- custom terminal commands (fish functions declared in home.nix) ----
     readonly property var terminalCommands: [
         { cmd: "rebuild", desc: "Switch to the flake config, then prune old generations" },
-        { cmd: "update", desc: "Update flake inputs, then rebuild" },
         { cmd: "save", desc: "Commit and push nixos-config" },
         { cmd: "gens", desc: "List system generations" },
-        { cmd: "cfg", desc: "cd to nixos-config and launch claude" }
+        { cmd: "cfg", desc: "cd to nixos-config and launch claude" },
+        { cmd: "/update", desc: "Run inside claude (after cfg) for safe system updates" }
     ]
 
     // ---- visuals ----
