@@ -478,79 +478,7 @@ PanelWindow {
                     readonly property real colWidth: (width - 32) / 3
 
                     width: scrollArea.width
-                    spacing: 16
-
-                    Grid {
-                        width: parent.width
-                        columns: 3
-                        columnSpacing: 16
-                        rowSpacing: 16
-
-                        Repeater {
-                            model: root.renderSections
-
-                            delegate: Rectangle {
-                                id: sectionCard
-
-                                required property var modelData
-
-                                width: contentColumn.colWidth
-                                height: sectionColumn.height + 24
-                                radius: 16
-                                color: Qt.alpha(scheme.cSurfaceContainerHigh, 0.7)
-                                border.width: 1
-                                border.color: Qt.alpha(scheme.cOutlineVariant, 0.35)
-                                visible: modelData.rows.length > 0
-
-                                Column {
-                                    id: sectionColumn
-
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.top: parent.top
-                                    anchors.margins: 12
-                                    spacing: 6
-
-                                    Text {
-                                        text: sectionCard.modelData.name
-                                        font.family: "Rubik"
-                                        font.pixelSize: 14
-                                        font.bold: true
-                                        color: scheme.cPrimary
-                                    }
-
-                                    Repeater {
-                                        model: sectionCard.modelData.rows
-
-                                        delegate: Column {
-                                            required property var modelData
-
-                                            width: sectionColumn.width
-                                            spacing: 1
-
-                                            Text {
-                                                width: parent.width
-                                                text: modelData.keyLabel
-                                                font.family: "CaskaydiaCove NF"
-                                                font.pixelSize: 11
-                                                color: scheme.cOnPrimaryContainer
-                                                wrapMode: Text.WordWrap
-                                            }
-
-                                            Text {
-                                                width: parent.width
-                                                text: modelData.label
-                                                font.family: "Rubik"
-                                                font.pixelSize: 12
-                                                color: scheme.cOnSurface
-                                                wrapMode: Text.WordWrap
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    spacing: 10
 
                     Rectangle {
                         width: parent.width
@@ -681,6 +609,78 @@ PanelWindow {
                                             font.family: "Rubik"
                                             font.pixelSize: 12
                                             color: scheme.cOnSurface
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Grid {
+                        width: parent.width
+                        columns: 3
+                        columnSpacing: 10
+                        rowSpacing: 10
+
+                        Repeater {
+                            model: root.renderSections
+
+                            delegate: Rectangle {
+                                id: sectionCard
+
+                                required property var modelData
+
+                                width: contentColumn.colWidth
+                                height: sectionColumn.height + 24
+                                radius: 16
+                                color: Qt.alpha(scheme.cSurfaceContainerHigh, 0.7)
+                                border.width: 1
+                                border.color: Qt.alpha(scheme.cOutlineVariant, 0.35)
+                                visible: modelData.rows.length > 0
+
+                                Column {
+                                    id: sectionColumn
+
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    anchors.margins: 12
+                                    spacing: 6
+
+                                    Text {
+                                        text: sectionCard.modelData.name
+                                        font.family: "Rubik"
+                                        font.pixelSize: 14
+                                        font.bold: true
+                                        color: scheme.cPrimary
+                                    }
+
+                                    Repeater {
+                                        model: sectionCard.modelData.rows
+
+                                        delegate: Column {
+                                            required property var modelData
+
+                                            width: sectionColumn.width
+                                            spacing: 1
+
+                                            Text {
+                                                width: parent.width
+                                                text: modelData.keyLabel
+                                                font.family: "CaskaydiaCove NF"
+                                                font.pixelSize: 11
+                                                color: scheme.cOnPrimaryContainer
+                                                wrapMode: Text.WordWrap
+                                            }
+
+                                            Text {
+                                                width: parent.width
+                                                text: modelData.label
+                                                font.family: "Rubik"
+                                                font.pixelSize: 12
+                                                color: scheme.cOnSurface
+                                                wrapMode: Text.WordWrap
+                                            }
                                         }
                                     }
                                 }
