@@ -24,8 +24,10 @@ home-manager. GNOME is kept installed as a fallback session.
 ## Rules
 
 - Never run `sudo` or `nixos-rebuild switch` — the user applies rebuilds themselves.
-- Validate changes with `nixos-rebuild build --flake .#nixos` instead, and commit after
-  each change that validates successfully.
+- Validate changes with `nixos-rebuild build --flake .#nixos` instead.
+- Never commit or push on your own. When a change is done and the build passes, stop and
+  ask: "Ready to commit and push?" Only do it after the user says yes. The user will
+  usually rebuild and test first.
 - Wallpapers live in `~/Pictures/Wallpapers` and never go in git (not even the `wallpapers/`
   directory in this repo).
 - Explain what a command does before running it — the user is learning.
