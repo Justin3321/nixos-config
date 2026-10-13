@@ -94,3 +94,5 @@ Also wired up GNOME Keyring (`services.gnome.gnome-keyring.enable` +
 `security.pam.services.gdm{,-password}.enableGnomeKeyring` in
 `configuration.nix`) since GDM's own password prompt is what unlocks it,
 regardless of whether you then launch the GNOME or Hyprland session.
+
+<!-- last reviewed: 2026-10-12 -->
