@@ -372,6 +372,21 @@ PanelWindow {
         { cmd: "/update", desc: "Run inside claude (after cfg) for safe system updates" }
     ]
 
+    // ---- larp terminal toys (packages in configuration.nix systemPackages) ----
+    readonly property var larpCommands: [
+        { cmd: "lavat", desc: "Lava lamp simulation" },
+        { cmd: "cmatrix", desc: "Matrix digital rain" },
+        { cmd: "cbonsai -l", desc: "Grow a terminal bonsai tree" },
+        { cmd: "cava", desc: "Audio visualizer" },
+        { cmd: "pipes.sh", desc: "Animated pipes filling the screen" },
+        { cmd: "asciiquarium", desc: "ASCII fish tank" },
+        { cmd: "unimatrix", desc: "Unicode matrix-rain variant" },
+        { cmd: "nyancat", desc: "The classic pop-tart cat" },
+        { cmd: "hollywood", desc: "Movie-hacker nonsense across every pane" },
+        { cmd: "genact", desc: "Fake \"hard at work\" progress bars/logs" },
+        { cmd: "tty-clock", desc: "Big ASCII digital clock" }
+    ]
+
     // ---- visuals ----
     Rectangle {
         id: scrim
@@ -583,6 +598,74 @@ PanelWindow {
 
                                             Text {
                                                 id: cmdText
+
+                                                anchors.centerIn: parent
+                                                text: modelData.cmd
+                                                font.family: "CaskaydiaCove NF"
+                                                font.pixelSize: 12
+                                                color: scheme.cOnSecondaryContainer
+                                            }
+                                        }
+
+                                        Text {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: modelData.desc
+                                            font.family: "Rubik"
+                                            font.pixelSize: 12
+                                            color: scheme.cOnSurface
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: larpColumn.height + 24
+                        radius: 16
+                        color: Qt.alpha(scheme.cSurfaceContainerHigh, 0.7)
+                        border.width: 1
+                        border.color: Qt.alpha(scheme.cOutlineVariant, 0.35)
+
+                        Column {
+                            id: larpColumn
+
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: 12
+                            spacing: 8
+
+                            Text {
+                                text: "Larp Terminal Toys"
+                                font.family: "Rubik"
+                                font.pixelSize: 14
+                                font.bold: true
+                                color: scheme.cPrimary
+                            }
+
+                            Flow {
+                                width: parent.width
+                                spacing: 16
+
+                                Repeater {
+                                    model: root.larpCommands
+
+                                    delegate: Row {
+                                        required property var modelData
+
+                                        spacing: 8
+
+                                        Rectangle {
+                                            radius: 6
+                                            color: Qt.alpha(scheme.cSecondaryContainer, 0.8)
+                                            width: larpCmdText.implicitWidth + 12
+                                            height: larpCmdText.implicitHeight + 6
+                                            anchors.verticalCenter: parent.verticalCenter
+
+                                            Text {
+                                                id: larpCmdText
 
                                                 anchors.centerIn: parent
                                                 text: modelData.cmd
