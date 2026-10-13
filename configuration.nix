@@ -244,6 +244,13 @@ in
   services.fwupd.enable = true;
   services.power-profiles-daemon.enable = true;
 
+  # nsncd (the default Rust reimplementation of nscd) can't parse
+  # GETSERVBYNAME requests on this glibc release and spins logging "Could
+  # not parse service request" several times a second forever, burning
+  # CPU. Fall back to glibc's own nscd, which is always protocol-compatible
+  # with the glibc making the request.
+  services.nscd.enableNsncd = false;
+
   # GNOME Keyring: works under both the GNOME and Hyprland sessions since the
   # display manager's password prompt is what unlocks it (not the desktop
   # session you launch afterwards). No per-DM enableGnomeKeyring flag is set
