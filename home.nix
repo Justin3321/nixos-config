@@ -20,6 +20,12 @@ in
     foot
     thunar
     eza
+    # Larp screen (SUPER + 3, see hypr-user.lua): terminal eye-candy that
+    # auto-launches into a 2x2 grid on workspace 3.
+    tty-clock
+    cmatrix
+    cbonsai
+    lavat
     zoxide
     direnv
     starship
@@ -145,6 +151,25 @@ in
     end)
     hl.bind("SUPER + Slash", hl.dsp.exec_cmd("qs ipc -c cheatsheet call cheatsheet toggle"))
     hl.layer_rule({ match = { namespace = "caelestia-cheatsheet" }, animation = "fade", blur = true })
+
+    -- "Larp screen": 4 terminal toys auto-launched into a 2x2 grid on
+    -- workspace 3 (SUPER + 3). Each foot instance gets a unique --app-id so
+    -- the window rules below can target it individually; the rules' own
+    -- `workspace = "3"` is what actually sends them there (no need for a
+    -- `[workspace 3 silent]` exec prefix). They're floated and pinned to a
+    -- quadrant instead of left to the tiling layout so the grid is exact,
+    -- but still ordinary closable/movable windows otherwise.
+    hl.on("hyprland.start", function()
+        hl.exec_cmd("foot -a larp-clock tty-clock -c")
+        hl.exec_cmd("foot -a larp-matrix cmatrix")
+        hl.exec_cmd("foot -a larp-bonsai cbonsai -l")
+        hl.exec_cmd("foot -a larp-lava lavat")
+    end)
+
+    hl.window_rule({ match = { class = "larp-clock" }, workspace = "3", float = true, move = "0% 0%", size = "50% 50%" })
+    hl.window_rule({ match = { class = "larp-matrix" }, workspace = "3", float = true, move = "50% 0%", size = "50% 50%" })
+    hl.window_rule({ match = { class = "larp-bonsai" }, workspace = "3", float = true, move = "0% 50%", size = "50% 50%" })
+    hl.window_rule({ match = { class = "larp-lava" }, workspace = "3", float = true, move = "50% 50%", size = "50% 50%" })
   '';
 
   # Starship + fish greeting + foot config pulled declaratively too, verbatim.
